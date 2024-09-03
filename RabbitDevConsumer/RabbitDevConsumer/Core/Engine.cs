@@ -1,18 +1,25 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
+using System.Net.Sockets;
 using System.Text;
 
 namespace RabbitDevTool.Core
 {
     public class Engine
     {
-
         public Action<string> Output { get; set; }
+
+        RpcServer RPCServer { get; set; }
 
         private IModel SubChannel;
 
         private IModel PubChannel;
+
+        public Engine()
+        {
+            RPCServer = new RpcServer();
+        }
 
         public void Initialize()
         {
@@ -23,12 +30,14 @@ namespace RabbitDevTool.Core
             PubChannel = connection.CreateModel();
             SubChannel = connection.CreateModel();
 
-
-            SubChannel.QueueDeclare(queue: "Producer",
-                durable: false, exclusive: false, autoDelete: false, arguments: null);
-
             PubChannel.QueueDeclare(queue: "Consumer",
                 durable: false, exclusive: false, autoDelete: false, arguments: null);
+
+            RPCServer.Enroll(connection);
+
+            RPCServer.Output = new Action<string>( (message) => {
+                Output?.Invoke(message);
+            });
 
         }
         public void Subscribe()
@@ -40,7 +49,7 @@ namespace RabbitDevTool.Core
                 var body = ea.Body.ToArray();
                 var message = Encoding.UTF8.GetString(body);
 
-                Output.Invoke(message);
+                Output?.Invoke(message);
             };
 
             SubChannel.BasicConsume(queue: "Producer",

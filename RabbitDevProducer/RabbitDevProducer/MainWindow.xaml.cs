@@ -36,5 +36,10 @@ namespace RabbitDevTool
         {
             Engine.Send(this.textMessage.Text);
         }
+
+        private void CallButton_Click(object sender, RoutedEventArgs e)
+        {
+            Engine.Call();
+        }
     }
 }
